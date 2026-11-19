@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Frame Extractor</title>
+</head>
+<body>
+  <video id="v" src="/room_construction.mp4" crossorigin="anonymous" muted playsinline></video>
+  <canvas id="c" width="1920" height="1080"></canvas>
+  <script>
+    const v = document.getElementById('v');
+    const c = document.getElementById('c');
+    const ctx = c.getContext('2d');
+
+    function waitForSeek(time) {
+      return new Promise((resolve) => {
+        const onSeeked = () => {
+          v.removeEventListener('seeked', onSeeked);
+          ctx.drawImage(v, 0, 0, 1920, 1080);
+          resolve(c.toDataURL('image/jpeg', 0.92));
+        };
+        v.addEventListener('seeked', onSeeked);
+        v.currentTime = time;
+      });
+    }
+
+    v.onloadedmetadata = async () => {
+      console.log('Video loaded, duration:', v.duration);
+      const times = [0.1, 1.0, 2.0, 3.2, 4.2, 5.0];
+      const results = {};
+      for (const t of times) {
+        results[t] = await waitForSeek(t);
+      }
+      
+      await fetch('http://127.0.0.1:4829', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(results)
+      });
+    };
+  </script>
+</body>
+</html>
